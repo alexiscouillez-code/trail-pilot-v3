@@ -1,0 +1,11 @@
+import { json, withUser } from "@/lib/api";
+import { estimateVo2 } from "@/lib/engine/vo2";
+import { loadActivities, loadProfile, resolveToday, toVo2Run } from "@/lib/service";
+
+/** VO2max estimée à partir de tout l’historique des sorties avec fréquence cardiaque. */
+export const GET = withUser(async (user, req) => {
+  const today = resolveToday(new URL(req.url).searchParams.get("today"));
+  const [rows, profile] = await Promise.all([loadActivities(user.id, "0000-01-01"), loadProfile(user.id)]);
+  const runs = rows.map(toVo2Run);
+  return json(estimateVo2(runs, today, { hrMax: profile.hr_max, hrRest: profile.hr_rest, watch: profile.vo2_watch }));
+});
